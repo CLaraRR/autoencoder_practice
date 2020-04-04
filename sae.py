@@ -1,5 +1,6 @@
 '''
 稀疏自编码器
+使用KL散度对神经元稀疏化
 '''
 from keras.layers import Input, Dense
 from keras.models import Model, load_model
