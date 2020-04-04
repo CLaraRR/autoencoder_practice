@@ -1,3 +1,8 @@
+'''
+条件变分自编码器
+标签类别信息作为额外的输入
+在生成图像时可指定类别来生成特定类别的图像
+'''
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.stats import norm
