@@ -18,9 +18,9 @@ import os
 os.environ['CUDA_VISIBLE_DEVICES'] = "0"
 
 ##### 设置网络参数 #####
-epochs_pre = 50
-epochs_whole = 500
-batch_size = 2048
+epochs_layer = 100
+epochs_whole = 200
+batch_size = 256
 origin_dim = 784
 h_dim1 = 256
 h_dim2 = 64
@@ -33,7 +33,7 @@ x_test = x_test.astype('float32')/255.
 x_train = x_train.reshape((len(x_train), np.prod(x_train.shape[1:])))
 x_test = x_test.reshape((len(x_test), np.prod(x_test.shape[1:])))
 # 给数据添加噪声
-noise_factor = 0.5
+noise_factor = 0.2
 x_train_noisy = x_train + noise_factor * np.random.normal(loc = 0.0, scale = 1.0, size = x_train.shape)
 x_test_noisy = x_test + noise_factor * np.random.normal(loc = 0.0, scale = 1.0, size = x_test.shape)
 x_train_noisy = np.clip(x_train_noisy, 0., 1.)
@@ -144,7 +144,7 @@ autoencoder_list = [encoder_1, encoder_2, decoder_3, decoder_4]
 print("Pre training:")
 for level in range(num_layers):
     print("level:", level)
-    train_layers(encoder_list=autoencoder_list, layer=level, epochs=epochs_pre, batch_size=batch_size)
+    train_layers(encoder_list=autoencoder_list, layer=level, epochs=epochs_layer, batch_size=batch_size)
 
 
 stacked_ae = StackedAutoEncoder(autoencoder_list)
