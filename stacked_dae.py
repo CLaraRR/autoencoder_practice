@@ -18,7 +18,8 @@ import os
 os.environ['CUDA_VISIBLE_DEVICES'] = "0"
 
 ##### 设置网络参数 #####
-epochs = 100
+epochs_pre = 50
+epochs_whole = 500
 batch_size = 2048
 origin_dim = 784
 h_dim1 = 256
@@ -48,7 +49,7 @@ class AutoEncoderLayer():
 
     def build(self):
         self.input = Input(shape=(self.input_dim,))
-        self.encode_layer = Dense(self.output_dim, activation='relu')
+        self.encode_layer = Dense(self.output_dim, activation='sigmoid')
         self.encoded = self.encode_layer(self.input)
         self.encoder = Model(self.input, self.encoded)
 
@@ -90,6 +91,7 @@ def train_layers(encoder_list=None, layer=None, epochs=None, batch_size=None):
     # 冻结当前层之前的所有层的参数,ps:第0层没有前置层
     # 对前(layer-1)冻结了的层用已经训练好的参数进行前向计算
     out = x_train_noisy
+    origin = x_train
     if layer != 0:
         for i in range(layer):
             # print("encoder weight", str(i), ":", encoder_list[i].encoder.get_weights()[0])
@@ -99,7 +101,7 @@ def train_layers(encoder_list=None, layer=None, epochs=None, batch_size=None):
     encoder_list[layer].autoencoder.compile(optimizer='adadelta', loss='binary_crossentropy')
     encoder_list[layer].autoencoder.fit(
         out,
-        out,
+        origin if layer == 0 else out,
         epochs=epochs,
         batch_size=batch_size,
         shuffle=True,
@@ -142,12 +144,12 @@ autoencoder_list = [encoder_1, encoder_2, decoder_3, decoder_4]
 print("Pre training:")
 for level in range(num_layers):
     print("level:", level)
-    train_layers(encoder_list=autoencoder_list, layer=level, epochs=epochs, batch_size=batch_size)
+    train_layers(encoder_list=autoencoder_list, layer=level, epochs=epochs_pre, batch_size=batch_size)
 
 
 stacked_ae = StackedAutoEncoder(autoencoder_list)
 print("Whole training:")
-train_whole(sae=stacked_ae, epochs=epochs, batch_size=batch_size)
+train_whole(sae=stacked_ae, epochs=epochs_whole, batch_size=batch_size)
 
 
 decoded_imgs = stacked_ae.model.predict(x_test_noisy)
