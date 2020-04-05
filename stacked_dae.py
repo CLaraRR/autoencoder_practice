@@ -18,7 +18,7 @@ import os
 os.environ['CUDA_VISIBLE_DEVICES'] = "0"
 
 ##### 设置网络参数 #####
-epochs = 400
+epochs = 100
 batch_size = 2048
 origin_dim = 784
 h_dim1 = 256
@@ -103,7 +103,7 @@ def train_layers(encoder_list=None, layer=None, epochs=None, batch_size=None):
         epochs=epochs,
         batch_size=batch_size,
         shuffle=True,
-        verbose=0
+        verbose=2
     )
 
 
