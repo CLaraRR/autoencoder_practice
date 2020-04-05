@@ -1,5 +1,5 @@
 '''
-稀疏自编码器
+稀疏自编码器(Sparse AutoEncoder)
 使用KL散度对神经元稀疏化
 '''
 from keras.layers import Input, Dense
