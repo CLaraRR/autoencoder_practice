@@ -41,10 +41,9 @@ x_test_noisy = np.clip(x_test_noisy, 0., 1.)
 
 ##### 构建单个autoencoder #####
 class AutoEncoderLayer():
-    def __init__(self, input_dim, output_dim, trainable=False):
+    def __init__(self, input_dim, output_dim):
         self.input_dim = input_dim
         self.output_dim = output_dim
-        self.trainable = trainable
         self.build()
 
     def build(self):
@@ -59,12 +58,7 @@ class AutoEncoderLayer():
         self.autoencoder = Model(self.input, self.decoded)
 
 
-    def set_trainable(self, trainable):
-        self.trainable = trainable
-        self.autoencoder.trainable = trainable
-        self.encoder.trainable = trainable
-
-
+# 构建堆叠DAE
 class StackedAutoEncoder():
     def __init__(self, layer_list):
         self.layer_list = layer_list
@@ -72,7 +66,7 @@ class StackedAutoEncoder():
 
     def build(self):
         out = self.layer_list[0].encoded
-        for i in range(1, num_layers):
+        for i in range(1, num_layers - 1):
             out = self.layer_list[i].encode_layer(out)
         self.model = Model(self.layer_list[0].input, out)
 
@@ -81,15 +75,14 @@ class StackedAutoEncoder():
 
 def train_layers(encoder_list=None, layer=None, epochs=None, batch_size=None):
     '''
-    预训练：逐层训练，当训练第l层时，将前（l-1）层的参数冻结
+    预训练：逐层训练，当训练第layer个ae时，使用前（layer-1）个ae训练好的encoder的参数
     :param encoder_list:
     :param layer:
     :param epochs:
     :param batch_size:
     :return:
     '''
-    # 冻结当前层之前的所有层的参数,ps:第0层没有前置层
-    # 对前(layer-1)冻结了的层用已经训练好的参数进行前向计算
+    # 对前(layer-1)层用已经训练好的参数进行前向计算，ps:第0层没有前置层
     out = x_train_noisy
     origin = x_train
     if layer != 0:
@@ -99,6 +92,8 @@ def train_layers(encoder_list=None, layer=None, epochs=None, batch_size=None):
 
     encoder_list[layer].autoencoder.summary()
     encoder_list[layer].autoencoder.compile(optimizer='adadelta', loss='binary_crossentropy')
+
+    # 训练第layer个ae
     encoder_list[layer].autoencoder.fit(
         out,
         origin if layer == 0 else out,
@@ -132,26 +127,29 @@ def train_whole(sae=None, epochs=None, batch_size=None):
     )
 
 
-# 实例化4个ae
-num_layers = 4
-encoder_1 = AutoEncoderLayer(origin_dim, h_dim1, trainable=True)
-encoder_2 = AutoEncoderLayer(h_dim1, h_dim2, trainable=True)
-decoder_3 = AutoEncoderLayer(h_dim2, h_dim1, trainable=True)
-decoder_4 = AutoEncoderLayer(h_dim1, origin_dim, trainable=True)
+# 5层的stacked ae，实际上要使用4个ae，实例化4个ae
+num_layers = 5
+encoder_1 = AutoEncoderLayer(origin_dim, h_dim1)
+encoder_2 = AutoEncoderLayer(h_dim1, h_dim2)
+decoder_3 = AutoEncoderLayer(h_dim2, h_dim1)
+decoder_4 = AutoEncoderLayer(h_dim1, origin_dim)
 autoencoder_list = [encoder_1, encoder_2, decoder_3, decoder_4]
 
 # 按照顺序对每一层进行预训练
 print("Pre training:")
-for level in range(num_layers):
+for level in range(num_layers - 1):
     print("level:", level)
     train_layers(encoder_list=autoencoder_list, layer=level, epochs=epochs_layer, batch_size=batch_size)
 
 
+# 用训练好的4个ae构建stacked dae
 stacked_ae = StackedAutoEncoder(autoencoder_list)
 print("Whole training:")
+# 进行全局训练优化
 train_whole(sae=stacked_ae, epochs=epochs_whole, batch_size=batch_size)
 
 
+##### 显示stacked dae重构后的效果 #####
 decoded_imgs = stacked_ae.model.predict(x_test_noisy)
 n = 10
 plt.figure(figsize=(20, 4))
