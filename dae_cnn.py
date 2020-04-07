@@ -6,11 +6,14 @@
 from keras.layers import Input, Dense, UpSampling2D
 from keras.layers import Convolution2D, MaxPooling2D
 from keras.models import Model, load_model
+import matplotlib.pyplot as plt
+import matplotlib.image as mpimg
+from keras.utils import plot_model
 import os
-
 # 指定gpu
 # os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
 os.environ['CUDA_VISIBLE_DEVICES'] = "0"
+os.environ["PATH"] += os.pathsep + 'D:/Program Files/Graphviz2.38/bin/'
 
 # 输入维度
 input_img = Input(shape=(28, 28, 1))
@@ -27,6 +30,7 @@ x = UpSampling2D((2, 2))(x)
 decoded = Convolution2D(1, 3, 3, activation='sigmoid', border_mode='same')(x)
 # 搭建模型并编译
 autoencoder = Model(input_img, decoded)
+autoencoder.summary()
 autoencoder.compile(optimizer='adadelta', loss='binary_crossentropy')
 
 # 准备加了噪声的mnist数据
@@ -49,13 +53,19 @@ x_test_noisy = np.clip(x_test_noisy, 0., 1.)
 # 对噪声数据进行自编码训练
 autoencoder.fit(x_train_noisy, x_train,
                 nb_epoch=10,
-                batch_size=256,
+                batch_size=512,
                 shuffle=True,
                 validation_data=(x_test_noisy, x_test))
 
 # 保存模型
 autoencoder.save('./model/model_dae_cnn')
 
+# 模型画图
+plot_model(autoencoder, to_file='model_dae_cnn.png', show_shapes=True)
+model_img = mpimg.imread('model_dae_cnn.png')
+plt.imshow(model_img)
+plt.axis('off')
+plt.show()
 
 # 加载模型
 new_model = load_model('./model/model_dae_cnn')
@@ -80,3 +90,5 @@ for i in range(1, n):
     ax.get_yaxis().set_visible(False)
 
 plt.show()
+
+
